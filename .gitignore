@@ -1,0 +1,10 @@
+.Rproj.user
+.Rhistory
+.RData
+R/*_cache
+R/*_files
+R/old/
+R/*.Rproj
+.Rapp.history
+data/complete.csv
+images/*

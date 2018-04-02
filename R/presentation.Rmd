@@ -1,0 +1,681 @@
+---
+title: "Fun and efficient data wrangling in R:"
+subtitle: "An introduction to the tidyverse"
+author: "Adrienne Marshall"
+date: "April 5, 2018"
+output: 
+  revealjs::revealjs_presentation:
+    incremental: true
+    theme: white
+    highlight: zenburn
+    center: true
+    transition: none
+    fig_width: 5
+    fig_height: 3
+    smaller: true
+    widescreen: false
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, cache = TRUE, autodep = TRUE)
+
+# packages: tidyverse, lubridate, reshape2, tidytext.
+
+library(knitr)
+```
+
+## Wrangling data
+
+What do we mean by data wrangling? 
+
+![wrangling](../images/unicorn_wrangling.jpg)
+
+Lots of possible definitions, but generally means all the transformations you might need to do to get data into a form that is ready for further analysis. 
+
+## Common tasks
+
+- Create a new column based on calculations in your data
+
+- Select only certain parts of your data
+
+- Do calculations on subsets of your data
+
+- Modify text data
+
+- Iterate over your data
+
+- Merge data from multiple sources 
+
+## Common tasks
+
+- Create a new column based on calculations in your data: `mutate()`
+
+- Select only certain columns or rows of your data: `filter(), select()`
+
+- Do calculations on subsets of your data: `group_by(), summarise()`
+
+- Modify text data: `stringr` functions
+
+- Iterate over your data: `for` loops, `apply()`, `purrr::map()`
+
+- Merge data from multiple sources: `join()`
+
+## Before we start...
+
+## How would you describe your prior experience with R?
+
+1. I just downloaded it for the first time.
+
+2. I use it, but it makes me uncomfortable.
+
+3. I'm comfortable with it, here to learn about the tidyverse. 
+
+## How comfortable are you with programming concepts like for loops and writing functions? 
+
+1. No idea what you're talking about.
+
+2. I've heard of and used these things, but they're a stretch. 
+
+3. Easy peasy. 
+
+## Let's jump in!
+
+- Disclaimer: I don't know everything, and there's always more to learn! 
+
+
+## The tidyverse
+
+A collection of R packages designed for data wrangling and visualization, built for tidying your data and working with tidy data.
+
+```{r load tidyverse, message = T, warning = F}
+library(tidyverse)
+```
+
+## Why the tidyverse?
+
+- Elegant, consistent way of organizing data
+
+- First argument to each function is typically a data frame (consistency)
+
+- More like reading English than base R code
+
+- Lots of packages that work well with tidy principles
+    + Network graphs, animations, more
+    + http://www.ggplot2-exts.org/gallery/
+  
+- Generally a friendly, enthusiastic community
+    + https://community.rstudio.com/t/welcome-to-the-rstudio-community/8
+
+## Why not the tidyverse?
+
+- More likely to change than base R
+
+
+## Tidy data
+
+1. Each variable forms a column.
+
+2. Each observation forms a row.
+
+3. Each type of observational unit forms a table.
+(https://cran.r-project.org/web/packages/tidyr/vignettes/tidy-data.html)
+
+## Tidy data example
+
+An untidy example: 
+```{r untidy, echo = F}
+df1 <- data.frame(names = c("Adrienne", "Alex"),
+                  favorite_food = c("burritos", "pizza"),
+                  favorite_color = c("yellow", "turquoise"))
+kable(df1)
+```
+
+## Tidy data example
+
+Tidied: 
+
+```{r tidy, echo = F, warning = F}
+df2 <- reshape2::melt(df1, id.vars = "names")
+kable(df2)
+```
+
+## Is tidy always better?
+
+![Sometimes messy is good!](../images/messy_face.jpg)
+
+Sometimes messy can be good!
+
+## When not to tidy...
+
+- Data entry
+
+- Data with matrix operations (e.g., statistical modeling)
+
+- Nice to know your options
+
+## Example data
+
+Read data using `read_csv()`.
+
+```{r get data}
+ufo <- read_csv("../data/ufo_dat.csv")
+ufo1 <- read.csv("../data/ufo_dat.csv")
+```
+
+## A word on file structures 
+
+- Many structures work, but you should definitely have one. 
+
+- Consider a "recipe" script. 
+
+- Try to avoid: 
+    + `setwd()`
+    + `read.csv("adrienne/cool_project1/version6/sdfljk.csv")`
+
+## A word on file structures
+
+![file structure](../images/file_structure.png)
+
+## Let's load some data...
+
+## `read_csv()` vs `read.csv()`
+
+- speed difference:
+
+```{r speed test, message = F, warning = F}
+system.time(ufo <- read_csv("../data/ufo_dat.csv"))
+system.time(ufo1 <- read.csv("../data/ufo_dat.csv"))
+```
+
+- `read_csv()` is "lazy and surly" (Wickham).
+
+- `read.csv()`: stringsAsFactors = TRUE, uses rownames
+
+
+## The pipe: `%>%`
+
+- Read it in your head as "then"
+    + as in, select part of your data, *then* arrange it in order. 
+
+- Use with functions that take a data frame as their first argument. 
+    + Works with: `head()`
+    + Not with: `mean()`
+    
+## Common data wrangling tasks
+
+## Rename columns
+
+```{r rename}
+ufo <- ufo %>% 
+  rename("duration_sec" = `duration (seconds)`)
+```
+
+This is the same as: 
+
+```{r rename2, eval = F}
+ufo <- rename(ufo, "duration_sec" = `duration (seconds)`)
+```
+
+
+## Create a new column: 
+`mutate()`
+
+```{r calculate duration by hour}
+ufo <- ufo %>%
+  mutate(duration_min = duration_sec/60) %>%
+  mutate(duration_hr = duration_min/60)
+
+kable(head(ufo[, c("duration_sec", "duration_min", "duration_hr")]))
+```
+
+## Where are the quotes?!
+
+```{r talk about quotes}
+ufo <- ufo %>%
+  mutate(duration_min = duration_sec/60) %>%
+  mutate(duration_hr = duration_min/60)
+```
+
+- In tidyverse functions, column names *typically* don't get quotes. 
+
+- This can be a little inconsistent:
+    + Check the examples in documentation if unsure: `?mutate`
+    + If it becomes a problem, check out tidyeval: https://dplyr.tidyverse.org/articles/programming.html
+    
+## `mutate()`
+
+Challenge: Add a column that gives the duration in years. 
+(Hint: there are 8760 hours in a year.)
+
+## Challenge answer
+
+```{r add years}
+ufo <- ufo %>% 
+  mutate(duration_years = duration_hr/8760)
+```
+
+
+## Subset your data: 
+`filter(), select()`
+
+```{r filter out unreasonably long periods}
+ufo %>% 
+  filter(duration_hr > 10) %>%
+  select(datetime, duration_sec, duration_hr, `duration (hours/min)`) %>%
+  arrange(desc(duration_hr)) %>%
+  head()
+```
+
+
+---------
+
+31 years?!
+
+```{r filter2}
+comment <- ufo %>% 
+  filter(duration_sec > 90000000) %>% 
+  select(comments)
+print(comment$comments)
+```
+
+
+--------
+
+Challenge: Get only the observations shorter than a duration of your choice. Save the results to a new data frame called `short_sight`. 
+
+## Challenge answer
+
+```{r challenge answer2}
+short_sight <- ufo %>% filter(duration_hr < 1)
+```
+
+
+
+## Do calculations on subsets:
+`group_by(), summarise()`
+
+For example, how many sightings were there per state?
+
+```{r group_by_summarise1}
+n_per_state <- ufo %>%
+  group_by(state) %>% 
+  count(sort = T)
+
+kable(head(n_per_state))
+```
+
+
+## Iterate over your data: 
+`for` loops, `apply()`, `purrr::map()`
+
+When to iterate: 
+
+- Anytime you need to do something more than twice (ish)
+
+- Examples: 
+    + downloading many files from the internet 
+    + analyzing several scenarios
+    + calculations for each year in a time series
+
+## `for` loops
+
+- Advantages: many other programming languages also have for loops.
+
+- Disadvantages: can be bulky and/or slow compared to other options.
+
+## Example `for` loops
+
+How many UFOs were observed in each state? 
+
+```{r for loop example}
+states <- unique(ufo$state)
+answer_df <- data.frame(state = states, n = NA)
+
+for(i in 1:length(states)){
+  temporary_data <- ufo %>% filter(state == states[i])
+  answer_df$n[i] <- nrow(temporary_data)
+}
+```
+
+--------
+
+```{r look at answer df}
+kable(head(answer_df))
+```
+
+## Example `apply` function
+
+How many UFOs were observed in each state? 
+
+```{r apply example}
+states <- unique(ufo$state)
+
+count_obs <- function(state_id){
+  nrow(ufo %>% filter(state == state_id))
+}
+
+counts <- lapply(states, count_obs)
+```
+
+
+## Example `map` function
+
+This is the tidyverse way...
+
+How many UFOs were observed in each state? 
+
+```{r map example}
+states <- unique(ufo$state)
+
+count_obs <- function(state_id){
+  nrow(ufo %>% filter(state == state_id))
+}
+
+ans_list <- map(states, count_obs)
+ans_vect <- map_int(states, count_obs)
+```
+
+## More with `map`
+
+```{r map example2}
+head(mtcars)
+models <- mtcars %>% 
+  split(.$cyl) %>% 
+  map(function(df) lm(mpg ~ wt, data = df))
+```
+
+** Example stolen directly from R for Data Science: http://r4ds.had.co.nz/iteration.html#the-map-functions
+
+## What did we get? 
+
+```{r map example3}
+summary(models[[1]])
+```
+
+## Extract coefficients
+
+```{r map example4}
+names(models[[1]])
+```
+
+## Extract coeffients
+
+```{r map example5}
+map(models, "coefficients")
+```
+
+
+** Caveat: May not be a good idea statistically...
+
+## Merge data from multiple sources: `join()`
+
+Are number of UFO sightings per year associated with economic conditions? 
+
+## `join()`
+
+First, get economic data: `?economics`
+
+```{r get sunspots}
+kable(head(economics))
+```
+
+## `join()`
+
+Make a year column in the UFO dataset. This requires a brief detour into `lubridate`
+
+```{r ufo get year, warning = F, message = F}
+library(lubridate)
+
+ufo <- ufo %>% 
+  separate(datetime, into = c("date", "time"), sep = " ") %>%
+  mutate(date = mdy(date)) %>% 
+  mutate(year = year(date))
+```
+
+
+## `join()`
+
+Let's see what we got out of that: 
+
+```{r look at data frame. }
+ufo %>% 
+  select(date, time, year) %>% 
+  head() %>% 
+  kable()
+```
+
+## `join()`
+
+We'll need to know how many UFO sightings there were each year in our dataset. 
+
+Challenge: how would you do this?
+
+- Consider:
+    + `for` loops
+    + `apply` functions
+    + `map` functions
+    + `group_by() %>% summarise()`
+
+## `join()`
+
+```{r ufo summary}
+ufo_counts <- ufo %>% 
+  group_by(year) %>%
+  count()
+
+kable(head(ufo_counts))
+```
+
+## `join()`
+
+We'll also want economic summaries by year. 
+
+```{r econ summary}
+econ_summary <- economics %>% 
+  mutate(year = year(date)) %>% 
+  group_by(year) %>% 
+  summarise_all(mean) %>%
+  ungroup() %>%
+  select(-date)
+```
+
+
+## At last: `join()`
+
+```{r join}
+df_new <- left_join(ufo_counts, econ_summary, by = "year") %>% 
+  filter(year >= min(econ_summary$year)) 
+kable(head(df_new))
+```
+
+## Why join?
+
+```{r join2, echo = F}
+ggplot(df_new, aes(x = unemploy, y = n)) + 
+  geom_point()
+```
+
+## How do joins work?
+
+![joins](../images/join-venn.png)
+
+## Wide to long: `melt`
+
+What if we wanted to plot all these economic variables at the same time?
+
+## Wide to long: `melt`
+
+```{r melt, warning = F, message = F}
+library(reshape2)
+df_long <- df_new %>% 
+  melt(id.vars = c("year", "n"))
+
+kable(head(df_long))
+
+```
+
+## Wide to long: `melt`
+
+```{r melt2, message = F}
+ggplot(df_long, aes(x = value, y = n)) + 
+  geom_point() +
+  geom_smooth() + 
+  facet_wrap(~variable, scales = "free_x")
+```
+
+
+## Text data: `stringr` functions
+
+Which UFO observations refer to a color? 
+
+```{r ufo colors}
+colors <- c(" red ", " orange ", " yellow ", " green ", " blue ", " purple ", " pink ", " white ", " black ")
+
+ufo_colors <- ufo %>% 
+  mutate(color_ans = str_detect(comments, colors)) %>% 
+  filter(color_ans == T)
+```
+
+Why the spaces? 
+
+## Look at some comments
+
+```{r ufo colors 2}
+ufo_colors$comments[1:10]
+```
+
+## Extract the colors
+
+```{r ufo colors 3}
+colors_ans <- map(colors, function(color){str_extract(ufo_colors$comments, color)})
+
+colors_df <- as.data.frame(colors_ans) 
+colors_df <- colors_df %>%
+  unite("colors_included", 1:ncol(colors_df), sep = ";") %>%
+  mutate(colors_included = str_replace_all(colors_included, "NA;", "")) %>%
+  mutate(colors_included = str_replace_all(colors_included, ";NA", ""))
+
+head(colors_df)
+
+```
+
+## Add colors to original data
+
+```{r ufo colors 4}
+ufo_colors <- ufo_colors %>% mutate(colors = colors_df$colors_included)
+
+```
+
+## Working with text data
+
+"You never get better at regex; you just get better at googling." 
+
+http://stringr.tidyverse.org
+
+https://www.tidytextmining.com/
+
+## Put it together to answer a question
+
+What colors are most common in UFOs, and is there a relationship between color and shape? 
+
+```{r most common colors}
+library(tidytext)
+colors_df <- ufo_colors %>% 
+  unnest_tokens(output = colors, input = colors, 
+                token = stringr::str_split, pattern = ";") %>%
+  mutate(colors = str_replace_all(colors, " ", ""))
+
+```
+
+--------------
+
+```{r most common colors2}
+colors_df %>% 
+  select(date, colors) %>%
+  head() %>% 
+  kable()
+
+```
+
+
+## Most common UFO colors
+
+```{r most common colors3}
+colors_df %>% 
+  group_by(colors) %>% 
+  count(sort = T) %>% 
+  ggplot(aes(x = colors, y = n)) + 
+  geom_col() + 
+  coord_flip()
+
+```
+
+## Looks like white UFOs are the most common 
+but red and orange show up a lot too!
+
+## Is there a relationship between color and shape? 
+
+First, we should just get the 10 most common shapes.
+
+Challenge: How would you do that? 
+
+## Most common shapes
+
+```{r common shapes}
+shapes <- colors_df %>% 
+  filter(!is.na(shape)) %>%
+  group_by(shape) %>%
+  count(sort = TRUE) %>%
+  ungroup() %>%
+  slice(1:10)
+
+kable(shapes)
+```
+
+What's wrong with this?
+
+## Keep only data with shapes in the top 10.
+
+Challenge: How would you do that? 
+
+## Keep only data with shapes in the top 10.
+
+```{r keep common shapes}
+shape_colors <- colors_df %>%
+  filter(shape %in% shapes$shape)
+```
+
+## Relationship between shape and color: 
+
+```{r shape color}
+ggplot(shape_colors, aes(x = shape, fill = colors)) + 
+  geom_bar(position = "fill")
+```
+
+## Review
+
+What do each of these functions do? 
+
+- `mutate()`
+
+- `filter()`
+
+- `select()`
+
+- `group_by() %>% summarise()`
+
+- `str_select()` or `str_extract()`
+
+- `join()`
+
+## Review: iteration
+
+What are some approaches to iteration? 
+
+- `for` loops
+
+- `apply()` functions
+
+- `map()` functions 
+
+- in simple cases, may be replacable with `group_by() %>% summarise()`
