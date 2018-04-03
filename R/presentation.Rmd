@@ -2,7 +2,7 @@
 title: "Fun and efficient data wrangling in R:"
 subtitle: "An introduction to the tidyverse"
 author: "Adrienne Marshall"
-date: "April 5, 2018"
+date: "April 4, 2018"
 output: 
   revealjs::revealjs_presentation:
     incremental: true
@@ -30,7 +30,7 @@ What do we mean by data wrangling?
 
 ![wrangling](../images/unicorn_wrangling.jpg)
 
-Lots of possible definitions, but generally means all the transformations you might need to do to get data into a form that is ready for further analysis. 
+Lots of possible definitions, but generally refers to all the transformations you might need to do to get data into a form that is ready for further analysis. 
 
 ## Common tasks
 
@@ -102,6 +102,7 @@ library(tidyverse)
 - Lots of packages that work well with tidy principles
     + Network graphs, animations, more
     + http://www.ggplot2-exts.org/gallery/
+    + https://www.tidytextmining.com/index.html
   
 - Generally a friendly, enthusiastic community
     + https://community.rstudio.com/t/welcome-to-the-rstudio-community/8
@@ -178,7 +179,7 @@ ufo1 <- read.csv("../data/ufo_dat.csv")
 
 ## Let's load some data...
 
-## `read_csv()` vs `read.csv()`
+## `read_csv()` / `read.csv()`
 
 - speed difference:
 
@@ -190,6 +191,12 @@ system.time(ufo1 <- read.csv("../data/ufo_dat.csv"))
 - `read_csv()` is "lazy and surly" (Wickham).
 
 - `read.csv()`: stringsAsFactors = TRUE, uses rownames
+
+## Take a look
+
+```{r look at data, eval = F}
+View(ufo)
+```
 
 
 ## The pipe: `%>%`
@@ -292,7 +299,7 @@ short_sight <- ufo %>% filter(duration_hr < 1)
 
 
 ## Do calculations on subsets:
-`group_by(), summarise()`
+`group_by() %>% summarise()`
 
 For example, how many sightings were there per state?
 
@@ -300,8 +307,27 @@ For example, how many sightings were there per state?
 n_per_state <- ufo %>%
   group_by(state) %>% 
   count(sort = T)
+```
 
+---------
+
+```{r group_by_summarise2}
 kable(head(n_per_state))
+```
+
+## Calculate on subsets
+Another example
+
+```{r group_by_summarise3}
+mean_lon <- ufo %>% 
+  group_by(state) %>%
+  summarise(lon = mean(longitude))
+```
+
+-------------
+
+```{r group_by_summarise4}
+kable(head(mean_lon))
 ```
 
 
@@ -343,6 +369,8 @@ for(i in 1:length(states)){
 kable(head(answer_df))
 ```
 
+Any differences from our `group_by() %>% summarise()` approach?
+
 ## Example `apply` function
 
 How many UFOs were observed in each state? 
@@ -355,6 +383,12 @@ count_obs <- function(state_id){
 }
 
 counts <- lapply(states, count_obs)
+```
+
+----------
+
+```{r apply example2}
+counts[1:5]
 ```
 
 
@@ -386,9 +420,18 @@ models <- mtcars %>%
 
 ** Example stolen directly from R for Data Science: http://r4ds.had.co.nz/iteration.html#the-map-functions
 
+## What did we get?
+
+A list of three linear models...
+
+```{r map example 3a}
+str(models, max.level = 1)
+```
+
+
 ## What did we get? 
 
-```{r map example3}
+```{r map example3b}
 summary(models[[1]])
 ```
 
@@ -529,14 +572,16 @@ ggplot(df_long, aes(x = value, y = n)) +
 Which UFO observations refer to a color? 
 
 ```{r ufo colors}
+ufo <- ufo %>% mutate(comments = tolower(comments))
+
 colors <- c(" red ", " orange ", " yellow ", " green ", " blue ", " purple ", " pink ", " white ", " black ")
 
 ufo_colors <- ufo %>% 
-  mutate(color_ans = str_detect(comments, colors)) %>% 
+  mutate(color_ans = str_detect(comments, paste(colors, collapse = "|"))) %>% 
   filter(color_ans == T)
 ```
 
-Why the spaces? 
+Why the spaces? Any potential problems with spaces?
 
 ## Look at some comments
 
@@ -615,7 +660,7 @@ but red and orange show up a lot too!
 
 ## Is there a relationship between color and shape? 
 
-First, we should just get the 10 most common shapes.
+First, we should just get the 5 most common shapes.
 
 Challenge: How would you do that? 
 
@@ -627,18 +672,18 @@ shapes <- colors_df %>%
   group_by(shape) %>%
   count(sort = TRUE) %>%
   ungroup() %>%
-  slice(1:10)
+  slice(1:5)
 
 kable(shapes)
 ```
 
 What's wrong with this?
 
-## Keep only data with shapes in the top 10.
+## Keep only data with shapes in the top 5.
 
 Challenge: How would you do that? 
 
-## Keep only data with shapes in the top 10.
+## Keep only data with shapes in the top 5.
 
 ```{r keep common shapes}
 shape_colors <- colors_df %>%
@@ -648,9 +693,15 @@ shape_colors <- colors_df %>%
 ## Relationship between shape and color: 
 
 ```{r shape color}
-ggplot(shape_colors, aes(x = shape, fill = colors)) + 
+ggplot(shape_colors, aes(x = colors, fill = shape)) + 
   geom_bar(position = "fill")
 ```
+
+## If extra time... 
+
+- What's another question we could ask of this data?
+
+- What are the programming steps we would need to answer it? 
 
 ## Review
 
@@ -679,3 +730,13 @@ What are some approaches to iteration?
 - `map()` functions 
 
 - in simple cases, may be replacable with `group_by() %>% summarise()`
+
+## Recommended resources 
+
+- R for Data Science: http://r4ds.had.co.nz/
+
+- tidyverse web site: https://www.tidyverse.org/
+
+## Questions and comments?
+
+Thanks!
