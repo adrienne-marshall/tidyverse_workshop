@@ -11,7 +11,7 @@ If you'd like to go through the exercises, follow these instructions:
 
 2. Unzip the repo. To make things easy, I suggest making a new Rproject in the subdirectory called "R" in the folder you just downloaded. (instructions here: https://support.rstudio.com/hc/en-us/articles/200526207-Using-Projects)
 
-3. Open the script called "install_packages.R" in your Rproject. This script checks to see if you have the packages used in the workshop installed.
+3. Open and run the script called "install_packages.R" in your Rproject. This script checks to see if you have the packages used in the workshop installed.
 If they're not already installed, it installs them. This will take several minutes to run. It's okay if you get warnings saying that the packages were built 
 for a certain version of R, though if your R install is really out of date, you might bump into problems (check your version with `sessionInfo()`).
 
