@@ -1,5 +1,6 @@
-# tidyverse_workshop
-Fun and Efficient Data Wrangling with R: An Introduction to the Tidyverse. Presented at the University of Idaho Library Workshop series, April 4, 2018.
+# Tidyverse workshop
+## Fun and Efficient Data Wrangling with R: An Introduction to the Tidyverse. 
+### Presented at the University of Idaho Library Workshop series, April 4, 2018.
 
 This repo contains the materials used at a workshop presented through the University of Idaho Library on April 4, 2018. 
 If you'd just like to see the slides, check out R/presentation.html (you'll have to download the slides in order to view them).
